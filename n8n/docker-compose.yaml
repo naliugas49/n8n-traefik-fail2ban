@@ -1,0 +1,65 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+    environment:
+      - N8N_HOST=tudominio.com # 👈 cambiar a tu dominio
+      - N8N_PROTOCOL=https
+      - N8N_SECURE_COOKIE=False
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_PUSH_BACKEND=websocket
+      - N8N_EXPRESS_TRUST_PROXY=true
+      - N8N_RUNNERS_ENABLED=true
+      - WEBHOOK_URL=https://tudominio.com # 👈 cambiar a tu dominio
+      - GENERIC_TIMEZONE=Europe/Madrid  # 👈 cambiar a tu zona horaria
+      
+      #--------------Arreglando warnings ---------------
+      - N8N_GIT_NODE_DISABLE_BARE_REPOS=true
+      - DB_SQLITE_POOL_SIZE=4
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=true  
+        #----------------------------------------------------------
+
+# Conexión a Traefik
+#-------------------------------------------------------------------------------------
+    networks:
+      - traefik_net
+
+    labels:
+      - "traefik.enable=true"
+
+      # ----------------------
+      # HTTP ROUTER (para ACME)
+      # ----------------------
+      - "traefik.http.routers.n8n-http.rule=Host(`tudominio.com`)" # 👈 cambiar a tu dominio
+      - "traefik.http.routers.n8n-http.entrypoints=web"
+      - "traefik.http.routers.n8n-http.service=n8n"   # 👈 OBLIGATORIO
+
+      # ----------------------
+      # HTTPS ROUTER
+      # ----------------------
+      - "traefik.http.routers.n8n.rule=Host(`tudominio.com`)" # 👈 cambiar a tu dominio
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls=true"
+      - "traefik.http.routers.n8n.tls.certresolver=le"
+      - "traefik.http.routers.n8n.service=n8n"
+
+      # Backend (puerto interno)
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+
+      # Network correcta
+      - "traefik.docker.network=traefik_net"
+
+    
+#-------------------------------------------------------------------------------------
+    restart: always  
+volumes:
+  n8n_data:
+    external: true
+
+networks:
+  traefik_net:
+    external: true

@@ -1,0 +1,63 @@
+services:
+  traefik:
+    container_name: traefik
+    image: traefik:v3.6
+    restart: always
+
+    command:
+      # Entry points
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+
+      # Proveedores
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"  # 👈 mejor práctica: exponer solo lo que queramos
+
+      # API (por ahora la dejamos insegura para pruebas, luego la mejoramos)
+      - "--api.insecure=false"   # 👈 cambiar a false en producción (1️⃣ Deshabilitar dashboard público) si esta en true se entra al Dashboard sin contrasena
+      - "--api.dashboard=true"
+      
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+
+      # Certificados
+      - "--certificatesresolvers.le.acme.email=<tudominio.com>" # 👈 cambiar a tu dominio
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+
+      - "--log.level=INFO"        
+### Logs para fail2ban
+      - "--accesslog=true"
+      - "--accesslog.filepath=/var/log/traefik/access.log"  
+      - "--accesslog.format=common"
+
+    labels:
+      - "traefik.enable=true"
+
+#----------- Dashboard Traefik --------------------------------------------------------------     
+#-------------------------------------------------------------------------------------------------      
+# Basic Auth para el Dashboard de Traefik (mediante esta configuracion se entra https://traefik.midominio.com y ya no mas a http://IP:8080)
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.midominio.com`)"  # 👈 cambiar a tu dominio
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=le"
+      - "traefik.http.routers.dashboard.service=api@internal"
+# Autenticación básica
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=usuario:HASH" # 👈 cambiar usuario y HASH (usar htpasswd para generar el hash)
+#-------------------------------------------------------------------------------------------------------
+    
+    ports:
+      - "80:80"      # HTTP
+      - "443:443"    # HTTPS 
+      - "8080:8080"  # Dashboard/API
+    networks:
+      - traefik_net
+
+    volumes:
+      - /var/log/traefik:/var/log/traefik
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./letsencrypt:/letsencrypt  # ← directorio local para persistir certificados
+
+networks:
+  traefik_net:
+    external: true

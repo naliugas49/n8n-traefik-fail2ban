@@ -1,0 +1,14 @@
+- revisar como exportar o migrar los datos del servidor de Hostinguer para la surface (volumen n8n)
+se pudo copiar desde /var/lib/docker/volumes/n8n_data
+
+- revisar el firewall con iptables para el tema de Docker, me puedo guiar por el de Hostinguer
+no es del todo necesario puesto que esta detras del fw
+
+- revisar temas de seguridad del servidor y el correcto funcionamiento de fail2ban
+- hacer resumen de fail2ban y como se procedio
+- guardar todo y documentar en github
+- ver como se pudieran tener 2 contenedores de n8n para que haya balanceo y tambien tener en cuenta migrar a postgresSQL
+- entender bien como es el proceso de obtencion de los certificados y donde se guardan y se gestionan
+
+
+
