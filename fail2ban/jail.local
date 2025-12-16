@@ -1,0 +1,90 @@
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1 
+bantime  = 1h
+findtime  = 10m
+maxretry = 3
+maxmatches = %(maxretry)s
+
+#############################
+######### JAILS #############
+#############################
+#------------------------------------------------------------------------------------------------------------------
+# SSH servers
+#
+[sshd]
+enabled = true
+mode   = aggressive
+port    = 77
+maxretry = 2
+findtime = 2m
+bantime = 1d
+banaction = iptables-allports
+logpath = %(sshd_log)s
+backend = %(sshd_backend)s
+
+
+[selinux-ssh]
+enabled = true
+port     = ssh
+logpath  = %(auditd_log)s
+
+
+#-----------------------------------------------------------------------------------------------------------------
+# HTTP servers
+#
+[traefik-auth]
+enabled  = true
+port     = http,https
+filter   = traefik-auth
+logpath  = /var/log/traefik/access.log
+maxretry = 3
+findtime = 5m
+bantime  = 2h
+banaction = iptables-allports
+
+[traefik]
+enabled = true
+filter = traefik
+logpath = /var/log/traefik/access.log
+port = http,https
+maxretry = 3
+findtime = 5m
+bantime = 2h
+banaction = iptables-allports
+
+[traefik-429]
+enabled = true
+port = http,https
+logpath = /var/log/traefik/access.log
+maxretry = 3
+findtime = 5m
+bantime = 6h
+backend = auto
+banaction   = iptables-allports[name=traefik-429, chain=DOCKER-USER]
+
+[traefik-404]
+enabled  = true
+filter   = traefik-404
+logpath  = /var/log/traefik/access.log
+port     = http,https
+maxretry = 3
+findtime = 5m
+bantime  = 12h
+backend  = auto
+banaction   = iptables-allports[name=traefik-404, chain=DOCKER-USER]
+
+
+[nsd]
+
+port     = 53
+action_  = %(default/action_)s[name=%(__name__)s-tcp, protocol="tcp"]
+           %(default/action_)s[name=%(__name__)s-udp, protocol="udp"]
+logpath = /var/log/nsd.log
+
+[recidive]
+enabled = true
+logpath  = /var/log/fail2ban.log
+banaction = %(banaction_allports)s
+bantime  = 4w
+findtime = 168h
+maxretry = 3
